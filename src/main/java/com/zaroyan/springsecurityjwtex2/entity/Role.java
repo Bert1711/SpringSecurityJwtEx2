@@ -10,20 +10,16 @@ import lombok.NoArgsConstructor;
  */
 @Entity
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
+@Table(name = "roles")
 public class Role {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @Column(name = "id")
+    private Integer id;
 
-    @Enumerated(EnumType.STRING)
-    private RoleName name;
-
-    public enum RoleName {
-        ROLE_USER,
-        ROLE_MODERATOR,
-        ROLE_SUPER_ADMIN
-    }
+    @Column(name = "name")
+    private String name;
 }
+

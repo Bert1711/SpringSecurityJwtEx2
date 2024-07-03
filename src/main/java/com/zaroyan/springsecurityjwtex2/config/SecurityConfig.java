@@ -1,11 +1,11 @@
 package com.zaroyan.springsecurityjwtex2.config;
 
 import com.zaroyan.springsecurityjwtex2.security.JwtAuthenticationFilter;
-import com.zaroyan.springsecurityjwtex2.security.UserDetailsServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.zaroyan.springsecurityjwtex2.services.UserDetailsServiceImpl;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -22,26 +22,29 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  */
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor()
+@Slf4j
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UserDetailsServiceImpl userDetailsService;
+    private final PasswordEncoder passwordEncoder;
+    private final CustomAuthenticationSuccessHandler successHandler;
 
-    @Autowired
-    public SecurityConfig(JwtAuthenticationFilter jwtAuthenticationFilter, UserDetailsServiceImpl userDetailsService) {
-        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
-        this.userDetailsService = userDetailsService;
-    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+        log.info("Configuring SecurityFilterChain");
         return http
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.disable())
                 .sessionManagement((session) -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeRequests().requestMatchers(HttpMethod.POST, "/public/login", "/public/register").permitAll()
+                .authorizeRequests()
+                .requestMatchers("/moderator").hasAuthority("MODERATOR")
+                .requestMatchers("/superadmin").hasAnyAuthority("SUPER_ADMIN")
+//                .successHandler(successHandler)
                 .and()
-                .authorizeRequests().anyRequest().authenticated()
+                .authorizeRequests().anyRequest().permitAll()
                 .and()
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
@@ -57,13 +60,8 @@ public class SecurityConfig {
     public DaoAuthenticationProvider authenticationProvider() {
         DaoAuthenticationProvider daoAuthenticationProvider = new DaoAuthenticationProvider();
         daoAuthenticationProvider.setUserDetailsService(userDetailsService);
-        daoAuthenticationProvider.setPasswordEncoder(getPasswordEncoder());
+        daoAuthenticationProvider.setPasswordEncoder(passwordEncoder);
         return daoAuthenticationProvider;
-    }
-
-    @Bean
-    public PasswordEncoder getPasswordEncoder() {
-        return new BCryptPasswordEncoder();
     }
 
 }
